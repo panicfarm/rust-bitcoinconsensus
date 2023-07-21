@@ -75,7 +75,6 @@ EXPORT_SYMBOL int bitcoinconsensus_verify_script_with_amount(const unsigned char
 
 EXPORT_SYMBOL unsigned int bitcoinconsensus_version();
 
-EXPORT_SYMBOL const unsigned char* get_verified_pubkeys_from_last_verify_invocation();
 EXPORT_SYMBOL const char* get_hex_pubkey(size_t index);
 EXPORT_SYMBOL size_t get_hex_pubkeys_size();
 
