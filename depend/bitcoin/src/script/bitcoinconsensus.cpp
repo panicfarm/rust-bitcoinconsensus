@@ -9,6 +9,12 @@
 #include <pubkey.h>
 #include <script/interpreter.h>
 #include <version.h>
+#include <iostream>
+#include <vector>
+
+// Our collection of hex pubkeys
+static std::vector<std::string> hex_pubkeys;
+
 
 namespace {
 
@@ -80,6 +86,9 @@ static int verify_script(const unsigned char *scriptPubKey, unsigned int scriptP
                                     const unsigned char *txTo        , unsigned int txToLen,
                                     unsigned int nIn, unsigned int flags, bitcoinconsensus_error* err)
 {
+    // Free memory used by hex_pubkeys
+    std::vector<std::string>().swap(hex_pubkeys);
+
     if (!verify_flags(flags)) {
         return set_error(err, bitcoinconsensus_ERR_INVALID_FLAGS);
     }
@@ -127,3 +136,41 @@ unsigned int bitcoinconsensus_version()
     // Just use the API version for now
     return BITCOINCONSENSUS_API_VER;
 }
+
+static const unsigned char* verified_pubkeys;
+const unsigned char* get_verified_pubkeys_from_last_verify_invocation()
+{
+    std::cout << "get verified_pubkeys in cpp: " << verified_pubkeys << "\n";
+    return verified_pubkeys;
+}
+void set_verified_pubkeys_from_last_verify_invocation(const unsigned char* keys)
+{
+    verified_pubkeys = keys;
+    std::cout << "set verified_pubkeys in cpp: " << verified_pubkeys << "\n";
+}
+
+
+void add_hex_pubkey(std::string hex_pubkey) 
+{
+		hex_pubkeys.push_back(hex_pubkey);
+}
+
+// Get a hex pubkey from the collection by index
+const char* get_hex_pubkey(size_t index) 
+{
+    if (index < hex_pubkeys.size()) 
+		{
+        return hex_pubkeys[index].c_str();
+    } 
+		else 
+		{
+        return nullptr;  // Return null if index is out of bounds
+    }
+}
+
+// Get the size of the collection
+size_t get_hex_pubkeys_size() 
+{
+    return hex_pubkeys.size();
+}
+

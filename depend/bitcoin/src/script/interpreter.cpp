@@ -11,6 +11,10 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <uint256.h>
+//#include <logging.h>
+#include <iostream>
+#include <util/strencodings.h>
+#include <script/bitcoinconsensus.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -1365,7 +1369,15 @@ uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn
 template <class T>
 bool GenericTransactionSignatureChecker<T>::VerifySignature(const std::vector<unsigned char>& vchSig, const CPubKey& pubkey, const uint256& sighash) const
 {
-    return pubkey.Verify(sighash, vchSig);
+    //LogPrintf("  pubkey.VerifySignature(pk=%s):\n", pubkey.data());
+    bool res = pubkey.Verify(sighash, vchSig);
+    if (res) {
+				std::string hex_pubkey = HexStr(pubkey.begin(), pubkey.end());
+        std::cout << "Success pubkey.VerifySignature(pk=" << hex_pubkey << ")\n";
+        set_verified_pubkeys_from_last_verify_invocation(reinterpret_cast<const unsigned char*>("TEST")); //pubkey.data();
+				add_hex_pubkey(hex_pubkey);
+    }
+    return res;
 }
 
 template <class T>

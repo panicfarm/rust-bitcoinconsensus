@@ -7,6 +7,7 @@
 #define BITCOIN_SCRIPT_BITCOINCONSENSUS_H
 
 #include <stdint.h>
+#include <string>
 
 #if defined(BUILD_BITCOIN_INTERNAL) && defined(HAVE_CONFIG_H)
 #include <config/bitcoin-config.h>
@@ -74,10 +75,17 @@ EXPORT_SYMBOL int bitcoinconsensus_verify_script_with_amount(const unsigned char
 
 EXPORT_SYMBOL unsigned int bitcoinconsensus_version();
 
+EXPORT_SYMBOL const unsigned char* get_verified_pubkeys_from_last_verify_invocation();
+EXPORT_SYMBOL const char* get_hex_pubkey(size_t index);
+EXPORT_SYMBOL size_t get_hex_pubkeys_size();
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
 #undef EXPORT_SYMBOL
+
+void set_verified_pubkeys_from_last_verify_invocation(const unsigned char* keys);
+void add_hex_pubkey(std::string hex_pubkey);
 
 #endif // BITCOIN_SCRIPT_BITCOINCONSENSUS_H
