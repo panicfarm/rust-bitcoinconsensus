@@ -1372,10 +1372,9 @@ bool GenericTransactionSignatureChecker<T>::VerifySignature(const std::vector<un
     //LogPrintf("  pubkey.VerifySignature(pk=%s):\n", pubkey.data());
     bool res = pubkey.Verify(sighash, vchSig);
     if (res) {
-				std::string hex_pubkey = HexStr(pubkey.begin(), pubkey.end());
+        std::string hex_pubkey = HexStr(pubkey.begin(), pubkey.end());
         std::cout << "Success pubkey.VerifySignature(pk=" << hex_pubkey << ")\n";
-        set_verified_pubkeys_from_last_verify_invocation(reinterpret_cast<const unsigned char*>("TEST")); //pubkey.data();
-				add_hex_pubkey(hex_pubkey);
+        add_hex_pubkey(hex_pubkey);
     }
     return res;
 }

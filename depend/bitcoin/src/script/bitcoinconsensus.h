@@ -85,7 +85,6 @@ EXPORT_SYMBOL size_t get_hex_pubkeys_size();
 
 #undef EXPORT_SYMBOL
 
-void set_verified_pubkeys_from_last_verify_invocation(const unsigned char* keys);
 void add_hex_pubkey(std::string hex_pubkey);
 
 #endif // BITCOIN_SCRIPT_BITCOINCONSENSUS_H

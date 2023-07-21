@@ -1,4 +1,7 @@
-.idea
-target
-*.iml
-Cargo.lock
+/rust/target
+**/*.swp
+**/*.swo
+**/__pycache__
+**/*.p
+**/*.pickle
+**/.ipynb_checkpoints

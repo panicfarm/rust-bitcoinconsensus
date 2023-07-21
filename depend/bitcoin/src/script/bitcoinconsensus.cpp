@@ -143,27 +143,21 @@ const unsigned char* get_verified_pubkeys_from_last_verify_invocation()
     std::cout << "get verified_pubkeys in cpp: " << verified_pubkeys << "\n";
     return verified_pubkeys;
 }
-void set_verified_pubkeys_from_last_verify_invocation(const unsigned char* keys)
-{
-    verified_pubkeys = keys;
-    std::cout << "set verified_pubkeys in cpp: " << verified_pubkeys << "\n";
-}
-
 
 void add_hex_pubkey(std::string hex_pubkey) 
 {
-		hex_pubkeys.push_back(hex_pubkey);
+    hex_pubkeys.push_back(hex_pubkey);
 }
 
 // Get a hex pubkey from the collection by index
 const char* get_hex_pubkey(size_t index) 
 {
     if (index < hex_pubkeys.size()) 
-		{
+    {
         return hex_pubkeys[index].c_str();
     } 
-		else 
-		{
+    else 
+    {
         return nullptr;  // Return null if index is out of bounds
     }
 }
