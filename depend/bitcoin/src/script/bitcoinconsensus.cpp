@@ -137,13 +137,6 @@ unsigned int bitcoinconsensus_version()
     return BITCOINCONSENSUS_API_VER;
 }
 
-static const unsigned char* verified_pubkeys;
-const unsigned char* get_verified_pubkeys_from_last_verify_invocation()
-{
-    std::cout << "get verified_pubkeys in cpp: " << verified_pubkeys << "\n";
-    return verified_pubkeys;
-}
-
 void add_hex_pubkey(std::string hex_pubkey) 
 {
     hex_pubkeys.push_back(hex_pubkey);
