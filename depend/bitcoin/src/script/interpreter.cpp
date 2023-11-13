@@ -1373,7 +1373,7 @@ bool GenericTransactionSignatureChecker<T>::VerifySignature(const std::vector<un
     bool res = pubkey.Verify(sighash, vchSig);
     if (res) {
         std::string hex_pubkey = HexStr(pubkey.begin(), pubkey.end());
-        std::cout << "Success pubkey.VerifySignature(pk=" << hex_pubkey << ")\n";
+        //std::cout << "Success pubkey.VerifySignature(pk=" << hex_pubkey << ")\n";
         add_pubkey(pubkey.data(), pubkey.size());
     }
     return res;
