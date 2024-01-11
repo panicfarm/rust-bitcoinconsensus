@@ -108,7 +108,7 @@ static int verify_script(const unsigned char *scriptPubKey, unsigned int scriptP
         PrecomputedTransactionData txdata(tx);
         bool ret = VerifyScript(tx.vin[nIn].scriptSig, CScript(scriptPubKey, scriptPubKey + scriptPubKeyLen), &tx.vin[nIn].scriptWitness, flags, TransactionSignatureChecker(&tx, nIn, amount, txdata), serror);
         if (!ret) {
-            std::cout << "VerifyScriptError: " << *serror << " txid: " << tx.GetHash().ToString() << " inp: " << nIn << "\n";
+            //std::cout << "VerifyScriptError: " << *serror << " txid: " << tx.GetHash().ToString() << " inp: " << nIn << "\n";
         }
         delete serror;
         serror = nullptr;
