@@ -13,7 +13,7 @@
 #include <vector>
 
 // Our collection of hex pubkeys
-static std::vector<std::vector<unsigned char>> pubkeys;
+thread_local static std::vector<std::vector<unsigned char>> pubkeys;
 
 
 namespace {

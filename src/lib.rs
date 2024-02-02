@@ -115,18 +115,44 @@ pub fn height_to_flags(height: u32) -> u32 {
     let mut flag = VERIFY_NONE;
 
     if height >= 173805 {
+        // && blockhash is not BIP16Exception = uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22"), i.e., height != 170060
+
+        // BIP16 didn't become active until Apr 1 2012 (on mainnet, and
+        // retroactively applied to testnet)
+        // However, only one historical block violated the P2SH rules (on both
+        // mainnet and testnet), so for simplicity, always leave P2SH
+        // on except for the one violating block.
+
         flag |= VERIFY_P2SH;
     }
+
+    // Enforce WITNESS rules whenever P2SH is in effect (and the segwit
+    // deployment is defined).
+    //if (height >= 481824) {
+    // if (flags & SCRIPT_VERIFY_P2SH && IsScriptWitnessEnabled(consensusparams)) {
+    // IsScriptWitnessEnabled(const Consensus::Params& params) { return params.SegwitHeight != std::numeric_limits<int>::max(); }
+    //flags |= SCRIPT_VERIFY_WITNESS;
+    //}
+
     if height >= 363725 {
+        // Start enforcing the DERSIG (BIP66) rule
+        // if (pindex->nHeight >= consensusparams.BIP66Height) {
         flag |= VERIFY_DERSIG;
     }
+
     if height >= 388381 {
+        // Start enforcing CHECKLOCKTIMEVERIFY (BIP65) rule
+        // if (pindex->nHeight >= consensusparams.BIP65Height) {
         flag |= VERIFY_CHECKLOCKTIMEVERIFY;
     }
     if height >= 419328 {
+        // Start enforcing BIP112 (CHECKSEQUENCEVERIFY)
+        // if (pindex->nHeight >= consensusparams.CSVHeight) {
         flag |= VERIFY_CHECKSEQUENCEVERIFY;
     }
     if height >= 481824 {
+        // Start enforcing BIP147 NULLDUMMY (activated simultaneously with segwit)
+        // if (IsWitnessEnabled(pindex->pprev, consensusparams)) {
         flag |= VERIFY_NULLDUMMY | VERIFY_WITNESS
     }
 
@@ -134,7 +160,9 @@ pub fn height_to_flags(height: u32) -> u32 {
 }
 
 /// Returns `libbitcoinconsensus` version.
-pub fn version() -> u32 { unsafe { bitcoinconsensus_version() as u32 } }
+pub fn version() -> u32 {
+    unsafe { bitcoinconsensus_version() as u32 }
+}
 
 /// Verifies a single spend (input) of a Bitcoin transaction.
 ///
@@ -273,5 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn invalid_flags_test() { verify_with_flags(&[], 0, &[], 0, VERIFY_ALL + 1).unwrap_err(); }
+    fn invalid_flags_test() {
+        verify_with_flags(&[], 0, &[], 0, VERIFY_ALL + 1).unwrap_err();
+    }
 }
