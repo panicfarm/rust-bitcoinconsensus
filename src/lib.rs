@@ -11,64 +11,13 @@
 //!
 //! And that is exactly what this library is, the Rust bindings to `bitcoinconsensus`.
 //!
-//! [`bitcoin/doc/shared-libraries`]: <https://github.com/bitcoin/bitcoin/blob/master/doc/shared-libraries.md>
+//! [`bitcoin/doc/shared-libraries.md`]: <https://github.com/bitcoin/bitcoin/blob/master/doc/shared-libraries.md>
 
 mod types;
 
 use core::fmt;
 
-use crate::types::*;
-
-/// Errors returned by [`libbitcoinconsensus`].
-///
-/// The error variant identifiers mimic those from `libbitcoinconsensus`.
-///
-/// [`libbitcoinconsensus`]: <https://github.com/bitcoin/bitcoin/blob/master/doc/shared-libraries.md#errors>
-#[allow(non_camel_case_types)]
-#[derive(Debug)]
-#[repr(C)]
-pub enum Error {
-    /// Default value, passed to `libbitcoinconsensus` as a return parameter.
-    ERR_SCRIPT = 0,
-    /// An invalid index for `txTo`.
-    ERR_TX_INDEX,
-    /// `txToLen` did not match with the size of `txTo`.
-    ERR_TX_SIZE_MISMATCH,
-    /// An error deserializing `txTo`.
-    ERR_TX_DESERIALIZE,
-    /// Input amount is required if WITNESS is used.
-    ERR_AMOUNT_REQUIRED,
-    /// Script verification `flags` are invalid (i.e. not part of the libconsensus interface).
-    ERR_INVALID_FLAGS,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::Error::*;
-
-        let s = match *self {
-            ERR_SCRIPT => "error value was not set (value still 0)",
-            ERR_TX_INDEX => "an invalid index for txTo",
-            ERR_TX_SIZE_MISMATCH => "txToLen did not match with the size of txTo",
-            ERR_TX_DESERIALIZE => "an error deserializing txTo",
-            ERR_AMOUNT_REQUIRED => "input amount is required if WITNESS is used",
-            ERR_INVALID_FLAGS => "script verification flags are invalid",
-        };
-        f.write_str(s)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use self::Error::*;
-
-        match *self {
-            ERR_SCRIPT | ERR_TX_INDEX | ERR_TX_SIZE_MISMATCH | ERR_TX_DESERIALIZE
-            | ERR_AMOUNT_REQUIRED | ERR_INVALID_FLAGS => None,
-        }
-    }
-}
+use crate::types::{c_int64, c_uchar, c_uint};
 
 /// Do not enable any verification.
 pub const VERIFY_NONE: c_uint = 0;
@@ -84,31 +33,15 @@ pub const VERIFY_CHECKLOCKTIMEVERIFY: c_uint = 1 << 9;
 pub const VERIFY_CHECKSEQUENCEVERIFY: c_uint = 1 << 10;
 /// Enable WITNESS (BIP141).
 pub const VERIFY_WITNESS: c_uint = 1 << 11;
+/// Enable TAPROOT (BIPs 341 & 342)
+pub const VERIFY_TAPROOT: c_uint = 1 << 17;
 
-pub const VERIFY_ALL: c_uint = VERIFY_P2SH
+pub const VERIFY_ALL_PRE_TAPROOT: c_uint = VERIFY_P2SH
     | VERIFY_DERSIG
     | VERIFY_NULLDUMMY
     | VERIFY_CHECKLOCKTIMEVERIFY
     | VERIFY_CHECKSEQUENCEVERIFY
     | VERIFY_WITNESS;
-
-extern "C" {
-    /// Returns `libbitcoinconsensus` version.
-    pub fn bitcoinconsensus_version() -> c_int;
-
-    /// Verifies that the transaction input correctly spends the previous
-    /// output, considering any additional constraints specified by flags.
-    pub fn bitcoinconsensus_verify_script_with_amount(
-        script_pubkey: *const c_uchar,
-        script_pubkeylen: c_uint,
-        amount: u64,
-        tx_to: *const c_uchar,
-        tx_tolen: c_uint,
-        n_in: c_uint,
-        flags: c_uint,
-        err: *mut Error,
-    ) -> c_int;
-}
 
 /// Computes flags for soft fork activation heights on the Bitcoin network.
 pub fn height_to_flags(height: u32) -> u32 {
@@ -155,13 +88,16 @@ pub fn height_to_flags(height: u32) -> u32 {
         // if (IsWitnessEnabled(pindex->pprev, consensusparams)) {
         flag |= VERIFY_NULLDUMMY | VERIFY_WITNESS
     }
+    if height > 709632 {
+        flag |= VERIFY_TAPROOT
+    }
 
     flag
 }
 
 /// Returns `libbitcoinconsensus` version.
 pub fn version() -> u32 {
-    unsafe { bitcoinconsensus_version() as u32 }
+    unsafe { ffi::bitcoinconsensus_version() as u32 }
 }
 
 /// Verifies a single spend (input) of a Bitcoin transaction.
@@ -170,45 +106,47 @@ pub fn version() -> u32 {
 ///
 /// # Arguments
 ///
-///  * spend_output_script: A Bitcoin transaction output script to be spent, serialized in Bitcoin's on wire format.
-///  * amount: The spent output amount in satoshis.
-///  * spending_transaction: The spending Bitcoin transaction, serialized in Bitcoin's on wire format.
-///  * input_index: The index of the input within spending_transaction.
+///  * `spend_output`: A Bitcoin transaction output script to be spent, serialized in Bitcoin's on wire format.
+///  * `amount`: The spent output amount in satoshis.
+///  * `spending_transaction`: The spending Bitcoin transaction, serialized in Bitcoin's on wire format.
+///  * `input_index`: The index of the input within spending_transaction.
 ///
 /// # Examples
 ///
-/// The (randomly choosen) Bitcoin transaction [aca326a724eda9a461c10a876534ecd5ae7b27f10f26c3862fb996f80ea2d45d](https://blockchain.info/tx/aca326a724eda9a461c10a876534ecd5ae7b27f10f26c3862fb996f80ea2d45d)
+/// The (randomly choosen) Bitcoin transaction
+///
+///  `aca326a724eda9a461c10a876534ecd5ae7b27f10f26c3862fb996f80ea2d45d`
+///
 /// spends one input, that is the first output of
-/// [95da344585fcf2e5f7d6cbf2c3df2dcce84f9196f7a7bb901a43275cd6eb7c3f](https://blockchain.info/tx/95da344585fcf2e5f7d6cbf2c3df2dcce84f9196f7a7bb901a43275cd6eb7c3f)
-/// with a value of 630482530 satoshis.
 ///
-/// The spending transaction in wire format is:
+///  `95da344585fcf2e5f7d6cbf2c3df2dcce84f9196f7a7bb901a43275cd6eb7c3f`
 ///
-/// `
-/// spending = 02000000013f7cebd65c27431a90bba7f796914fe8cc2ddfc3f2cbd6f7e5f2fc854534da95000000006b483045022100de1ac3bcdfb0332207c4a91f3832bd2c2915840165f876ab47c5f8996b971c3602201c6c053d750fadde599e6f5c4e1963df0f01fc0d97815e8157e3d59fe09ca30d012103699b464d1d8bc9e47d4fb1cdaa89a1c5783d68363c4dbc4b524ed3d857148617feffffff02836d3c01000000001976a914fc25d6d5c94003bf5b0c7b640a248e2c637fcfb088ac7ada8202000000001976a914fbed3d9b11183209a57999d54d59f67c019e756c88ac6acb0700
-/// `
+/// The spending transaction serialized is:
+///
+///  `spending = 02000000013f7cebd65c27431a90bba7f796914fe8cc2ddfc3f2cbd6f7e5f2fc854534da95000000006b483045022100de1ac3bcdfb0332207c4a91f3832bd2c2915840165f876ab47c5f8996b971c3602201c6c053d750fadde599e6f5c4e1963df0f01fc0d97815e8157e3d59fe09ca30d012103699b464d1d8bc9e47d4fb1cdaa89a1c5783d68363c4dbc4b524ed3d857148617feffffff02836d3c01000000001976a914fc25d6d5c94003bf5b0c7b640a248e2c637fcfb088ac7ada8202000000001976a914fbed3d9b11183209a57999d54d59f67c019e756c88ac6acb0700`
 ///
 /// The script of the first output of the spent transaction is:
 ///
-/// `
-/// spent = 76a9144bfbaf6afb76cc5771bc6404810d1cc041a6933988ac
-/// `
+///  `spent = 76a9144bfbaf6afb76cc5771bc6404810d1cc041a6933988ac`
 ///
-/// The (pseudo code) call:
+/// The (pseudo code) call: `verify(spent, 630482530, spending, 0)` should return `Ok(())`.
 ///
-/// `
-/// verify(spent, 630482530, spending, 0)
-/// `
-/// should return `Ok(())`.
-///
-/// **Note** since the spent amount will only be checked for Segwit transactions and the above example is not segwit, `verify` will succeed with any amount.
+/// **Note** since the spent amount will only be checked for Segwit transactions and the above
+/// example is not segwit, `verify` will succeed with any amount.
 pub fn verify(
+    // The script_pubkey of the output we are spending (e.g. `TxOut::script_pubkey.as_bytes()`).
     spent_output: &[u8],
-    amount: u64,
-    spending_transaction: &[u8],
+    amount: u64, // The amount of the output is spending (e.g. `TxOut::value`)
+    spending_transaction: &[u8], // Create using `tx.serialize().as_slice()`
+    spent_outputs: Option<&[Utxo]>, // None for pre-taproot.
     input_index: usize,
 ) -> Result<(), Error> {
-    verify_with_flags(spent_output, amount, spending_transaction, input_index, VERIFY_ALL)
+    let flags = match spent_outputs {
+        Some(_) => VERIFY_ALL_PRE_TAPROOT | VERIFY_TAPROOT,
+        None => VERIFY_ALL_PRE_TAPROOT,
+    };
+
+    verify_with_flags(spent_output, amount, spending_transaction, spent_outputs, input_index, flags)
 }
 
 /// Same as verify but with flags that turn past soft fork features on or off.
@@ -216,26 +154,167 @@ pub fn verify_with_flags(
     spent_output_script: &[u8],
     amount: u64,
     spending_transaction: &[u8],
+    spent_outputs: Option<&[Utxo]>,
     input_index: usize,
     flags: u32,
 ) -> Result<(), Error> {
-    unsafe {
-        let mut error = Error::ERR_SCRIPT;
+    match spent_outputs {
+        Some(spent_outputs) => unsafe {
+            let mut error = Error::ERR_SCRIPT;
 
-        let ret = bitcoinconsensus_verify_script_with_amount(
-            spent_output_script.as_ptr(),
-            spent_output_script.len() as c_uint,
-            amount,
-            spending_transaction.as_ptr(),
-            spending_transaction.len() as c_uint,
-            input_index as c_uint,
-            flags as c_uint,
-            &mut error,
-        );
-        if ret != 1 {
-            Err(error)
-        } else {
-            Ok(())
+            let ret = ffi::bitcoinconsensus_verify_script_with_spent_outputs(
+                spent_output_script.as_ptr(),
+                spent_output_script.len() as c_uint,
+                amount,
+                spending_transaction.as_ptr(),
+                spending_transaction.len() as c_uint,
+                spent_outputs.as_ptr() as *const c_uchar,
+                spent_outputs.len() as c_uint,
+                input_index as c_uint,
+                flags as c_uint,
+                &mut error,
+            );
+            if ret != 1 {
+                Err(error)
+            } else {
+                Ok(())
+            }
+        },
+        None => unsafe {
+            let mut error = Error::ERR_SCRIPT;
+
+            let ret = ffi::bitcoinconsensus_verify_script_with_amount(
+                spent_output_script.as_ptr(),
+                spent_output_script.len() as c_uint,
+                amount,
+                spending_transaction.as_ptr(),
+                spending_transaction.len() as c_uint,
+                input_index as c_uint,
+                flags as c_uint,
+                &mut error,
+            );
+            if ret != 1 {
+                Err(error)
+            } else {
+                Ok(())
+            }
+        },
+    }
+}
+
+/// Mimics the Bitcoin Core UTXO typedef (bitcoinconsenus.h)
+// This is the TxOut data for utxos being spent, i.e., previous outputs.
+#[repr(C)]
+pub struct Utxo {
+    /// Pointer to the scriptPubkey bytes.
+    pub script_pubkey: *const c_uchar,
+    /// The length of the scriptPubkey.
+    pub script_pubkey_len: c_uint,
+    /// The value in sats.
+    pub value: c_int64,
+}
+
+pub mod ffi {
+    use super::*;
+    use crate::types::c_int;
+
+    extern "C" {
+        /// Returns `libbitcoinconsensus` version.
+        pub fn bitcoinconsensus_version() -> c_int;
+
+        /// Verifies that the transaction input correctly spends the previous
+        /// output, considering any additional constraints specified by flags.
+        ///
+        /// This function does not verify Taproot inputs.
+        pub fn bitcoinconsensus_verify_script_with_amount(
+            script_pubkey: *const c_uchar,
+            script_pubkeylen: c_uint,
+            amount: u64,
+            tx_to: *const c_uchar,
+            tx_tolen: c_uint,
+            n_in: c_uint,
+            flags: c_uint,
+            err: *mut Error,
+        ) -> c_int;
+
+        /// Verifies that the transaction input correctly spends the previous
+        /// output, considering any additional constraints specified by flags.
+        ///
+        /// This function verifies Taproot inputs.
+        pub fn bitcoinconsensus_verify_script_with_spent_outputs(
+            script_pubkey: *const c_uchar,
+            script_pubkeylen: c_uint,
+            amount: u64,
+            tx_to: *const c_uchar,
+            tx_tolen: c_uint,
+            spent_outputs: *const c_uchar,
+            num_spent_outputs: c_uint,
+            n_in: c_uint,
+            flags: c_uint,
+            err: *mut Error,
+        ) -> c_int;
+    }
+}
+
+/// Errors returned by [`libbitcoinconsensus`].
+///
+/// The error variant identifiers mimic those from `libbitcoinconsensus`.
+///
+/// [`libbitcoinconsensus`]: <https://github.com/bitcoin/bitcoin/blob/master/doc/shared-libraries.md#errors>
+#[allow(non_camel_case_types)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(C)]
+pub enum Error {
+    /// Default value, passed to `libbitcoinconsensus` as a return parameter.
+    ERR_SCRIPT = 0, // This is ERR_OK in Bitcoin Core.
+    /// An invalid index for `txTo`.
+    ERR_TX_INDEX,
+    /// `txToLen` did not match with the size of `txTo`.
+    ERR_TX_SIZE_MISMATCH,
+    /// An error deserializing `txTo`.
+    ERR_TX_DESERIALIZE,
+    /// Input amount is required if WITNESS is used.
+    ERR_AMOUNT_REQUIRED,
+    /// Script verification `flags` are invalid (i.e. not part of the libconsensus interface).
+    ERR_INVALID_FLAGS,
+    /// Verifying Taproot input requires previous outputs.
+    ERR_SPENT_OUTPUTS_REQUIRED,
+    /// Taproot outputs don't match.
+    ERR_SPENT_OUTPUTS_MISMATCH,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::Error::*;
+
+        let s = match *self {
+            ERR_SCRIPT => "error value was not set (value still 0)",
+            ERR_TX_INDEX => "an invalid index for txTo",
+            ERR_TX_SIZE_MISMATCH => "txToLen did not match with the size of txTo",
+            ERR_TX_DESERIALIZE => "an error deserializing txTo",
+            ERR_AMOUNT_REQUIRED => "input amount is required if WITNESS is used",
+            ERR_INVALID_FLAGS => "script verification flags are invalid",
+            ERR_SPENT_OUTPUTS_REQUIRED => "verifying taproot input requires previous outputs",
+            ERR_SPENT_OUTPUTS_MISMATCH => "taproot outputs don't match",
+        };
+        f.write_str(s)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        use self::Error::*;
+
+        match *self {
+            ERR_SCRIPT
+            | ERR_TX_INDEX
+            | ERR_TX_SIZE_MISMATCH
+            | ERR_TX_DESERIALIZE
+            | ERR_AMOUNT_REQUIRED
+            | ERR_INVALID_FLAGS
+            | ERR_SPENT_OUTPUTS_REQUIRED
+            | ERR_SPENT_OUTPUTS_MISMATCH => None,
         }
     }
 }
@@ -296,12 +375,13 @@ mod tests {
             spent.from_hex().unwrap().as_slice(),
             amount,
             spending.from_hex().unwrap().as_slice(),
+            None,
             input,
         )
     }
 
     #[test]
     fn invalid_flags_test() {
-        verify_with_flags(&[], 0, &[], 0, VERIFY_ALL + 1).unwrap_err();
+        verify_with_flags(&[], 0, &[], None, 0, VERIFY_ALL_PRE_TAPROOT + 1).unwrap_err();
     }
 }

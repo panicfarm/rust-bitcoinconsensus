@@ -1,23 +1,44 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <shutdown.h>
 
-#include <atomic>
+#include <kernel/context.h>
+#include <logging.h>
+#include <util/check.h>
+#include <util/signalinterrupt.h>
 
-static std::atomic<bool> fRequestShutdown(false);
+#include <assert.h>
+#include <system_error>
 
 void StartShutdown()
 {
-    fRequestShutdown = true;
+    try {
+        Assert(kernel::g_context)->interrupt();
+    } catch (const std::system_error&) {
+        LogPrintf("Sending shutdown token failed\n");
+        assert(0);
+    }
 }
+
 void AbortShutdown()
 {
-    fRequestShutdown = false;
+    Assert(kernel::g_context)->interrupt.reset();
 }
+
 bool ShutdownRequested()
 {
-    return fRequestShutdown;
+    return bool{Assert(kernel::g_context)->interrupt};
+}
+
+void WaitForShutdown()
+{
+    try {
+        Assert(kernel::g_context)->interrupt.wait();
+    } catch (const std::system_error&) {
+        LogPrintf("Reading shutdown token failed\n");
+        assert(0);
+    }
 }

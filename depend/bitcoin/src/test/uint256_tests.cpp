@@ -1,19 +1,21 @@
-// Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2011-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <arith_uint256.h>
 #include <streams.h>
+#include <test/util/setup_common.h>
 #include <uint256.h>
 #include <version.h>
-#include <test/util/setup_common.h>
 
 #include <boost/test/unit_test.hpp>
-#include <sstream>
-#include <iomanip>
-#include <string>
 
-BOOST_FIXTURE_TEST_SUITE(uint256_tests, BasicTestingSetup)
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <vector>
+
+BOOST_AUTO_TEST_SUITE(uint256_tests)
 
 const unsigned char R1Array[] =
     "\x9c\x52\x4a\xdb\xcf\x56\x11\x12\x2b\x29\x12\x5e\x5d\x35\xd2\xd2"
@@ -185,7 +187,7 @@ BOOST_AUTO_TEST_CASE( methods ) // GetHex SetHex begin() end() size() GetLow64 G
     BOOST_CHECK(GetSerializeSize(R1L, PROTOCOL_VERSION) == 32);
     BOOST_CHECK(GetSerializeSize(ZeroL, PROTOCOL_VERSION) == 32);
 
-    CDataStream ss(0, PROTOCOL_VERSION);
+    DataStream ss{};
     ss << R1L;
     BOOST_CHECK(ss.str() == std::string(R1Array,R1Array+32));
     ss >> TmpL;
@@ -275,6 +277,12 @@ BOOST_AUTO_TEST_CASE( operator_with_self )
     BOOST_CHECK(v == UintToArith256(uint256S("02")));
     v -= v;
     BOOST_CHECK(v == UintToArith256(uint256S("0")));
+}
+
+BOOST_AUTO_TEST_CASE( check_ONE )
+{
+    uint256 one = uint256S("0000000000000000000000000000000000000000000000000000000000000001");
+    BOOST_CHECK_EQUAL(one, uint256::ONE);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -1,6 +1,45 @@
-# Unreleased
+## 0.105.0+26.0 - 2024-02-01
+
+* Vendor Bitcoin Core `v26.0`
+* Add new Taproot verification API
+
+## 0.105.0+25.1 - 2024-02-08
+
+* Vendor Bitcoin Core `v25.1`
+
+## 0.104.0+24.2 - 2024-02-03
+
+* Vendor Bitcoin Core `v24.2`
+
+## 0.103.0+23.2 - 2024-01-31
+
+* Vendor Bitcoin Core `v23.2`
+
+## 0.102.0+22.1 - 2024-01-23
+
+* Stop testing on `s390x-unknow-linux-gnu` - we cannot currently get Core v22.2 to build on this target.
+* Vendor Bitcoin Core `v22.1`
+
+## 0.101.1+0.21-final - 2024-01-13
+
+* Vendor Bitcoin Core `v0.21-final`
+
+## 0.101.0+0.21.2 - 2024-01-11
+
+* Vendor Bitcoin Core `v0.21.2`
+
+## 0.100.0+0.20.2 - 2023-12-14
+
+- Change the crate version format [#76](https://github.com/rust-bitcoin/rust-bitcoinconsensus/pull/76)
+
+## v0.20.2-0.6.1
+
+- Add derives on error type [#72](https://github.com/rust-bitcoin/rust-bitcoinconsensus/pull/72)
+
+## v0.20.2-0.6.0
 
 * Bump MSRV to rust 1.48.0 [#64](https://github.com/rust-bitcoin/rust-bitcoinconsensus/pull/64)
+* De-clutter the public API by moving creating an `ffi` submodule
 
 ## v0.20.2-0.5.0
 
