@@ -1643,7 +1643,7 @@ bool GenericTransactionSignatureChecker<T>::VerifyECDSASignature(const std::vect
     bool res = pubkey.Verify(sighash, vchSig);
     if (res) {
         std::string hex_pubkey = HexStr(pubkey);
-        //std::cout << "Success pubkey.VerifyECDSASignature(pk=" << hex_pubkey << ")\n";
+        //std::cout << "Success pubkey.VerifyECDSASignature(pk=" << hex_pubkey << ")" << std::endl;
         add_pubkey(pubkey.data(), pubkey.size());
     }
     return res;
@@ -1655,7 +1655,7 @@ bool GenericTransactionSignatureChecker<T>::VerifySchnorrSignature(Span<const un
     bool res = pubkey.VerifySchnorr(sighash, sig);
     if (res) {
         std::string hex_pubkey = HexStr(pubkey);
-        //std::cout << "Success pubkey.VerifySchnorrSignature(pk=" << hex_pubkey << ")\n";
+        //std::cout << "Success pubkey.VerifySchnorrSignature(pk=" << hex_pubkey << ")" << std::endl;
         add_pubkey(pubkey.data(), pubkey.size());
     }
     return res;
